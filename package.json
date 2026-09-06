@@ -1,0 +1,26 @@
+{
+  "name": "portfolio",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "clean": "turbo run clean",
+    "test": "turbo run test",
+    "test:cov": "turbo run test:cov",
+    "test:e2e": "playwright test",
+    "staging": "node scripts/staging.js",
+    "staging:stop": "docker compose -f docker-compose.staging.yml down",
+    "staging:logs": "docker compose -f docker-compose.staging.yml logs -f api"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "turbo": "^2.5.3",
+    "typescript": "^5.8.3"
+  },
+  "packageManager": "pnpm@11.5.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

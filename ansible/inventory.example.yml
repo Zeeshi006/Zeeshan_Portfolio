@@ -1,0 +1,6 @@
+all:
+  hosts:
+    vps:
+      ansible_host: YOUR_VPS_IP      # e.g. 123.456.789.10
+      ansible_user: root             # initial setup uses root; switch to deploy after
+      ansible_ssh_private_key_file: ~/.ssh/id_ed25519

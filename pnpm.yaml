@@ -1,0 +1,5 @@
+onlyBuiltDependencies:
+  - msgpackr-extract
+  - esbuild
+  - prisma
+  - "@prisma/client"

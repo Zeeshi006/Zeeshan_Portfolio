@@ -1,0 +1,21 @@
+{
+  "extends": "@portfolio/config/tsconfig-nextjs",
+  "compilerOptions": {
+    "types": ["vitest/globals"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@portfolio/types": ["../../packages/types/src/index.ts"],
+      "@portfolio/ui": ["../../packages/ui/src/index.ts"]
+    },
+    "noEmit": true,
+    "isolatedModules": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

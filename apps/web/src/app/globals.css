@@ -1,0 +1,148 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --ink-900: #0A0C10;
+    --ink-800: #0F1218;
+    --ink-700: #161A22;
+    --ink-600: #1E2430;
+    --line:    #232A36;
+    --text-hi:  #E8ECF2;
+    --text-mid: #99A2B2;
+    --text-lo:  #5C6573;
+    --signal:     #C6FF3A;
+    --signal-dim: #8FB82A;
+    --signal-ink: #14210A;
+    --warn:   #FFB020;
+    --ok:     #3FB950;
+    --danger: #F85149;
+  }
+
+  html, body {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;  /* prevent any component from causing horizontal scroll */
+    max-width: 100vw;
+  }
+
+  html {
+    /* offset anchor scroll by nav height (4rem) + visual breathing room (1.5rem) */
+    scroll-padding-top: 5.5rem;
+  }
+
+  /* scrollIntoView respects scroll-margin-top (not scroll-padding-top).
+     Apply to every landmark section so both hash links and JS scroll work. */
+  section[id] {
+    scroll-margin-top: 5.5rem;
+  }
+
+  * { box-sizing: border-box; }
+
+  /* Ensure pointer cursor on all interactive elements — Tailwind Preflight
+     does not guarantee this across all browsers/contexts */
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  select,
+  label[for] {
+    cursor: pointer;
+  }
+  button:disabled,
+  [role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--signal);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background-color: var(--signal);
+    color: var(--signal-ink);
+  }
+}
+
+/* ── Mobile overrides ────────────────────────────────────────────────────────
+   Hard override for font sizes AND section padding at < 640px.
+   This is the single source of truth for mobile layout — do not remove. */
+@media (max-width: 639px) {
+  .text-display-xl { font-size: 2rem    !important; line-height: 1.05 !important; }
+  .text-display-l  { font-size: 1.75rem !important; line-height: 1.1  !important; }
+
+  /* Tighter section padding on mobile — targets the px-6 div directly inside sections */
+  section > div { padding-left: 1rem !important; padding-right: 1rem !important; }
+}
+
+/* ── Custom scrollbars (Terminal Observatory theme) ──────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--ink-600);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-lo);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-600) transparent;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+
+@layer utilities {
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--ink-600) 0%,
+      var(--ink-700) 40%,
+      var(--ink-600) 100%
+    );
+    background-size: 600px 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+
+  .section-index {
+    @apply font-mono text-mono-label text-text-lo uppercase tracking-widest;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .grid-motif {
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.4;
+  }
+}
+
+/* Override browser autofill background so it stays dark-themed */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #E8ECF2;
+  -webkit-box-shadow: 0 0 0 1000px #0A0C10 inset;
+  box-shadow: 0 0 0 1000px #0A0C10 inset;
+  caret-color: #E8ECF2;
+  transition: background-color 0s 600000s;
+}

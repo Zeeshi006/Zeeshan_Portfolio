@@ -1,0 +1,175 @@
+name: PR Gate
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Unit tests (fast, no infrastructure) ─────────────────────────────────────
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter api exec prisma generate
+
+      - name: Backend unit tests
+        run: pnpm --filter api test --coverage
+        working-directory: .
+
+      - name: Frontend unit tests
+        run: pnpm --filter web test --coverage
+        working-directory: .
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-${{ github.sha }}
+          path: |
+            services/api/coverage/
+            apps/web/coverage/
+          retention-days: 7
+
+  # ── Integration tests (Testcontainers — needs Docker) ────────────────────────
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter api exec prisma generate
+
+      - name: Run integration tests
+        run: pnpm --filter api test:integration
+        env:
+          # Testcontainers pulls images — no pre-seeded DB needed
+          TESTCONTAINERS_RYUK_DISABLED: 'true'
+
+  # ── TypeScript typecheck ───────────────────────────────────────────────────────
+  typecheck:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter api exec prisma generate
+
+      - name: Type-check all packages
+        run: pnpm turbo type-check
+
+  # ── Lint ─────────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint all packages
+        run: pnpm turbo lint
+
+  # ── E2E tests (Playwright — needs running dev server) ────────────────────────
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: unit
+    env:
+      # Point web at a mock/stub API in CI — real API not available without full stack
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      # Override admin credentials for E2E smoke tests (no real NestJS server needed
+      # because e2e/admin.spec.ts intercepts the login API call via route mocking)
+      E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+      E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
+        env:
+          CI: 'true'
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ github.sha }}
+          path: playwright-report/
+          retention-days: 7
+
+  # ── Gate — all jobs must pass before merge ────────────────────────────────────
+  gate:
+    name: All Checks Passed
+    runs-on: ubuntu-latest
+    needs: [unit, integration, typecheck, lint, e2e]
+    if: always()
+    steps:
+      - name: Check all jobs succeeded
+        run: |
+          if [[ "${{ needs.unit.result }}" != "success" ]]; then exit 1; fi
+          if [[ "${{ needs.integration.result }}" != "success" ]]; then exit 1; fi
+          if [[ "${{ needs.typecheck.result }}" != "success" ]]; then exit 1; fi
+          if [[ "${{ needs.lint.result }}" != "success" ]]; then exit 1; fi
+          if [[ "${{ needs.e2e.result }}" != "success" ]]; then exit 1; fi
+          echo "All PR gate checks passed ✓"

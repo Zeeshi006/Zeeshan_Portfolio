@@ -1,0 +1,39 @@
+# Dependencies — never copy into build context
+node_modules
+**/node_modules
+
+# Build outputs
+**/.next
+**/dist
+**/.turbo
+**/coverage
+
+# Source control
+.git
+.gitignore
+
+# Secrets — never bake into an image
+.env
+.env.*
+
+# Docker / infra files (not needed inside the image)
+docker-compose*.yml
+**/Dockerfile*
+.dockerignore
+.github
+ansible
+Caddyfile
+
+# Test artefacts
+**/*.log
+**/*.tsbuildinfo
+**/playwright-report
+playwright.config.ts
+e2e/
+
+# Misc files at repo root
+BLOG_IMPL.md
+KB_DOCS.md
+KB_GUIDE.md
+Hammad_Resume.pdf
+newFile-*.avif

@@ -1,0 +1,191 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+  binaryTargets   = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+// ─── Content ────────────────────────────────────────────────────────────────
+
+model Skill {
+  id               String   @id @default(cuid())
+  name             String
+  category         String
+  proficiencyLevel Int      @default(3)
+  featured         Boolean  @default(false)
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("skills")
+}
+
+model SkillCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("skill_categories")
+}
+
+model Experience {
+  id         String    @id @default(cuid())
+  company    String
+  role       String
+  startDate  DateTime
+  endDate    DateTime?
+  summary    String
+  highlights String[]
+  sortOrder  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("experiences")
+}
+
+model Project {
+  id                  String   @id @default(cuid())
+  title               String
+  slug                String   @unique
+  tagline             String
+  techStack           String[]
+  outcomeMetric       String
+  status              String   @default("shipped")
+  featured            Boolean  @default(false)
+  sortOrder           Int      @default(0)
+  // External links (blank = NDA/private)
+  liveUrl             String?
+  githubUrl           String?
+  videoUrl            String?
+  // Inline case study
+  caseStudyPublished  Boolean  @default(false)
+  context             String?
+  problem             String?
+  architectureDiagram String?
+  diagramImageUrl     String?
+  keyDecisions        Json     @default("[]")
+  hardParts           String?
+  outcome             String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("projects")
+}
+
+model SiteContent {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("site_content")
+}
+
+// ─── Admin Passkey Credentials (WebAuthn / FIDO2) ────────────────────────────
+
+model PasskeyCredential {
+  id           String   @id @default(cuid())
+  credentialId String   @unique
+  publicKey    Bytes
+  counter      BigInt   @default(0)
+  transports   String[] @default([])
+  deviceName   String   @default("Unknown device")
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime @default(now())
+
+  @@map("passkey_credentials")
+}
+
+// ─── RAG Knowledge Base (Phase 4) ────────────────────────────────────────────
+
+model KBDocument {
+  id              String                      @id @default(cuid())
+  title           String
+  content         String
+  embedding       Unsupported("vector(1536)")?
+  metadata        Json                        @default("{}")
+  published       Boolean                     @default(true)
+  elevenLabsDocId String?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+
+  @@map("kb_documents")
+}
+
+model ChatSession {
+  id                  String        @id @default(cuid())
+  sessionId           String        @unique
+  ipHash              String
+  type                String        @default("text") // "text" | "voice"
+  voiceConversationId String?       // ElevenLabs conversation_id
+  summary             String?       // AI-generated call summary (voice only)
+  flagged             Boolean       @default(false)
+  messages            ChatMessage[]
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@index([type])
+  @@index([createdAt])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  session   ChatSession @relation(fields: [sessionId], references: [id])
+  sessionId String
+  role      String      // "user" | "assistant"
+  content   String
+  sources   Json        @default("[]")
+  toolCalls Json        @default("[]")
+  fromCache Boolean     @default(false)
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId])
+  @@map("chat_messages")
+}
+
+// ─── Blog ────────────────────────────────────────────────────────────────────
+
+model BlogPost {
+  id           String    @id @default(cuid())
+  slug         String    @unique
+  title        String
+  excerpt      String
+  content      String    @db.Text
+  tags         String[]
+  published    Boolean   @default(false)
+  publishedAt  DateTime?
+  canonicalUrl String?
+  readingTime  Int       @default(0)
+  views        Int       @default(0)
+  kbDocumentId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, publishedAt])
+  @@map("blog_posts")
+}
+
+// ─── Analytics (Phase 5) ─────────────────────────────────────────────────────
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  type      String   // "page_view" | "cta_click" | "chatbot_open" | "case_study_read" | "contact_form"
+  path      String
+  section   String?
+  sessionId String
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
